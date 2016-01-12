@@ -1,11 +1,19 @@
-# -*- codin:utf-8 -*-
+# -*- coding:utf-8 -*-
 
 from time import sleep
+import pygame
 
 EMPTY = 0
 HEAD = 1
 TAIL = 2
 CONDUCTOR = 3
+
+WIDTH = 14
+HEIGHT = 5
+SCALE = 10
+
+pygame.init()
+screen = pygame.display.set_mode((WIDTH * SCALE, HEIGHT * SCALE))
 
 
 class Cell(object):
@@ -57,11 +65,9 @@ class Matrix(list):
                     for i in range(8):
                         nx = x + nx_list[i]
                         ny = y + ny_list[i]
-                        if nx >=0 and nx < self.width and \
-                            ny >=0 and ny < self.height and \
-                            self[nx][ny].current_status == HEAD:
-                            count += 1
-                            # print("(%d %d) : %d, %d ... i=%d, count %d" % (x, y, nx, ny, i, count))
+                        if 0 <= nx < self.width and 0 <= ny < self.height:
+                            if self[nx][ny].current_status == HEAD:
+                                count += 1
                     if count == 1 or count == 2:
                         self[x][y].next_status = HEAD
                     else:
@@ -73,7 +79,7 @@ class Matrix(list):
                 self[x][y].evolve()
 
     def print(self):
-        for y in range(self.height-1, -1, -1):
+        for y in range(self.height):
             for x in range(self.width):
                 print(self[x][y], sep='', end='')
             print()
@@ -86,13 +92,27 @@ class Matrix(list):
             self.print()
             self.compute()
             self.evolve()
-            sleep(0.3)
+            display(self)
+            sleep(0.2)
+
+
+def display(matrix):
+    color = (0, 0, 0)
+    for x in range(matrix.width):
+        for y in range(matrix.height):
+            if matrix[x][y].current_status == EMPTY:
+                color = (0, 0, 0)
+            elif matrix[x][y].current_status == HEAD:
+                color = (0, 0, 255)
+            elif matrix[x][y].current_status == TAIL:
+                color = (255, 0, 0)
+            elif matrix[x][y].current_status == CONDUCTOR:
+                color = (255, 255, 0)
+            pygame.draw.rect(screen, color, (x*SCALE, y*SCALE, SCALE, SCALE), 0)
+    pygame.display.update()
 
 
 def main():
-
-    WIDTH = 14
-    HEIGHT = 5
 
     matrix = Matrix(WIDTH, HEIGHT)
 
@@ -117,9 +137,7 @@ def main():
     matrix.set_cell(12, 2, CONDUCTOR)
     matrix.set_cell(13, 2, CONDUCTOR)
 
-
     matrix.run()
-
 
 
 if __name__ == '__main__':
