@@ -9,8 +9,8 @@ HEAD = 1
 TAIL = 2
 CONDUCTOR = 3
 
-WIDTH = 15
-HEIGHT = 5
+WIDTH = 250
+HEIGHT = 250
 SCALE = 4
 
 pg.init()
@@ -24,58 +24,52 @@ class Matrix:
         self.width = width
         self.height = height
 
-        self.current_gen = []
-        self.next_gen = []
-
-        for x in range(width):
-            self.current_gen.append([])
-            self.next_gen.append([])
-            self.current_gen[x] = [EMPTY] * height
-            self.next_gen[x] = [EMPTY] * height
+        self.current_gen = np.zeros((height, width), dtype=np.int8)
+        self.next_gen = np.zeros((height, width), dtype=np.int8)
 
     def compute(self):
-        nx_list = [-1,  0,  1, -1,  1, -1,  0,  1]
         ny_list = [-1, -1, -1,  0,  0,  1,  1,  1]
+        nx_list = [-1,  0,  1, -1,  1, -1,  0,  1]
 
         color = (0, 0, 0)
 
         for x in range(self.width):
             for y in range(self.height):
 
-                if self.current_gen[x][y] == EMPTY:
-                    self.next_gen[x][y] = EMPTY
+                if self.current_gen[y, x] == EMPTY:
+                    self.next_gen[y, x] = EMPTY
                     color = (0, 0, 0)
-                elif self.current_gen[x][y] == HEAD:
-                    self.next_gen[x][y] = TAIL
+                elif self.current_gen[y, x] == HEAD:
+                    self.next_gen[y, x] = TAIL
                     color = (255, 0, 0)
-                elif self.current_gen[x][y] == TAIL:
-                    self.next_gen[x][y] = CONDUCTOR
+                elif self.current_gen[y, x] == TAIL:
+                    self.next_gen[y, x] = CONDUCTOR
                     color = (255, 255, 0)
-                elif self.current_gen[x][y] == CONDUCTOR:
+                elif self.current_gen[y, x] == CONDUCTOR:
                     count = 0
                     for i in range(8):
                         nx = x + nx_list[i]
                         ny = y + ny_list[i]
                         if 0 <= nx < self.width and 0 <= ny < self.height:
-                            if self.current_gen[nx][ny] == HEAD:
+                            if self.current_gen[ny, nx] == HEAD:
                                 count += 1
                     if count == 1 or count == 2:
-                        self.next_gen[x][y] = HEAD
+                        self.next_gen[y, x] = HEAD
                         color = (0, 0, 255)
                     else:
-                        self.next_gen[x][y] = CONDUCTOR
+                        self.next_gen[y, x] = CONDUCTOR
                         color = (255, 255, 0)
                 pg.draw.rect(screen, color, (x*SCALE, y*SCALE, SCALE, SCALE), 0)
         pg.display.update()
-        self.current_gen = [x[:] for x in self.next_gen]
+        self.current_gen = self.next_gen.copy()
 
     def set_cell(self, x, y, status):
-        self.current_gen[x][y] = status
+        self.current_gen[y, x] = status
 
     def run(self):
         while True:
             self.compute()
-            sleep(0.1)
+            # sleep(0.1)
 
 
 def main():
