@@ -1,103 +1,129 @@
 # -*- coding:utf-8 -*-
 
-from time import sleep
+import time
 import pygame as pg
 import numpy as np
 
-EMPTY = 0
+CONDUCTOR = 0
 HEAD = 1
 TAIL = 2
-CONDUCTOR = 3
 
-WIDTH = 250
-HEIGHT = 250
-SCALE = 4
+WIDTH = 15
+HEIGHT = 5
+SCALE = 10
 
 pg.init()
 screen = pg.display.set_mode((WIDTH * SCALE, HEIGHT * SCALE))
 
 
-class Matrix:
-    def __init__(self, width, height):
-        super(Matrix, self).__init__()
+class Cell:
+    def __init__(self, x, y, status=CONDUCTOR):
+        self.current = status
+        self.next = CONDUCTOR
+        self.x, self.y = x, y
 
-        self.width = width
-        self.height = height
+matrix = []
+for j in range(HEIGHT):
+    matrix.append([])
+    matrix[j] = [None] * WIDTH
 
-        self.current_gen = np.zeros((height, width), dtype=np.int8)
-        self.next_gen = np.zeros((height, width), dtype=np.int8)
+matrix = np.array(matrix)
 
-    def compute(self):
-        ny_list = [-1, -1, -1,  0,  0,  1,  1,  1]
-        nx_list = [-1,  0,  1, -1,  1, -1,  0,  1]
-
+def compute(cell):
+    if cell is not None:
         color = (0, 0, 0)
+        if cell.current == HEAD:
+            cell.next = TAIL
+            color = (255, 0, 0)
+        elif cell.current == TAIL:
+            cell.next = CONDUCTOR
+            color = (255, 255, 0)
+        elif cell.current == CONDUCTOR:
+            count = 0
+            ny_list = (-1, -1, -1,  0,  0,  1,  1,  1)
+            nx_list = (-1,  0,  1, -1,  1, -1,  0,  1)
+            for z in range(8):
+                nx, ny = cell.x + nx_list[z], cell.y + ny_list[z]
+                if 0 <= nx < WIDTH and 0 <= ny < HEIGHT and matrix[ny, nx] is not None:
+                    if matrix[ny, nx].current == HEAD:
+                        count += 1
+            if count == 1 or count == 2:
+                cell.next = HEAD
+                color = (0, 0, 255)
+            else:
+                cell.next = CONDUCTOR
+                color = (255, 255, 0)
+        pg.draw.rect(screen, color, (cell.x*SCALE, cell.y*SCALE, SCALE, SCALE), 0)
+        # print("(%d, %d) : %d -> %d" % (cell.x, cell.y, cell.current, cell.next))
 
-        for x in range(self.width):
-            for y in range(self.height):
 
-                if self.current_gen[y, x] == EMPTY:
-                    self.next_gen[y, x] = EMPTY
-                    color = (0, 0, 0)
-                elif self.current_gen[y, x] == HEAD:
-                    self.next_gen[y, x] = TAIL
-                    color = (255, 0, 0)
-                elif self.current_gen[y, x] == TAIL:
-                    self.next_gen[y, x] = CONDUCTOR
-                    color = (255, 255, 0)
-                elif self.current_gen[y, x] == CONDUCTOR:
-                    count = 0
-                    for i in range(8):
-                        nx = x + nx_list[i]
-                        ny = y + ny_list[i]
-                        if 0 <= nx < self.width and 0 <= ny < self.height:
-                            if self.current_gen[ny, nx] == HEAD:
-                                count += 1
-                    if count == 1 or count == 2:
-                        self.next_gen[y, x] = HEAD
-                        color = (0, 0, 255)
-                    else:
-                        self.next_gen[y, x] = CONDUCTOR
-                        color = (255, 255, 0)
-                pg.draw.rect(screen, color, (x*SCALE, y*SCALE, SCALE, SCALE), 0)
+def evolve(cell):
+    if cell is not None:
+        cell.current = cell.next
+
+
+def set_cell(x, y, status):
+    matrix[y, x] = Cell(x, y, status)
+
+
+def show_console(m):
+    for x in m:
+        for cell in x:
+            if cell is None:
+                string = '.'
+            elif cell.current == HEAD:
+                string = 'O'
+            elif cell.current == TAIL:
+                string = 'o'
+            else:
+                string = '-'
+
+            print(string, end=' ')
+        print()
+
+
+compute = np.vectorize(compute)
+evolve = np.vectorize(evolve)
+def run():
+    while True:
+        # show_console(matrix)
+
+        t0 = time.time()
+        compute(matrix)
+        evolve(matrix)
+        # map(compute, np.nditer(matrix, op_flags=['readwrite']))
+        # map(evolve, np.nditer(matrix, op_flags=['readwrite']))
+        t1 = time.time()
         pg.display.update()
-        self.current_gen = self.next_gen.copy()
+        print(t1 - t0)
 
-    def set_cell(self, x, y, status):
-        self.current_gen[y, x] = status
-
-    def run(self):
-        while True:
-            self.compute()
-            # sleep(0.1)
+        time.sleep(0.01)
 
 
 def main():
 
-    matrix = Matrix(WIDTH, HEIGHT)
-
     # Set below default state
-    matrix.set_cell(1, 2, CONDUCTOR)
-    matrix.set_cell(2, 3, TAIL)
-    matrix.set_cell(2, 1, CONDUCTOR)
-    matrix.set_cell(3, 2, HEAD)
-    matrix.set_cell(4, 2, CONDUCTOR)
-    matrix.set_cell(5, 2, CONDUCTOR)
-    matrix.set_cell(6, 2, CONDUCTOR)
-    matrix.set_cell(7, 2, CONDUCTOR)
+    set_cell(1, 2, CONDUCTOR)
+    set_cell(2, 3, TAIL)
+    set_cell(2, 1, CONDUCTOR)
+    set_cell(3, 2, HEAD)
+    set_cell(4, 2, CONDUCTOR)
+    set_cell(5, 2, CONDUCTOR)
+    set_cell(6, 2, CONDUCTOR)
+    set_cell(7, 2, CONDUCTOR)
 
-    matrix.set_cell(8, 1, CONDUCTOR)
-    matrix.set_cell(8, 2, CONDUCTOR)
-    matrix.set_cell(8, 3, CONDUCTOR)
-    matrix.set_cell(9, 1, CONDUCTOR)
-    matrix.set_cell(9, 3, CONDUCTOR)
+    set_cell(8, 1, CONDUCTOR)
+    set_cell(8, 2, CONDUCTOR)
+    set_cell(8, 3, CONDUCTOR)
+    set_cell(9, 1, CONDUCTOR)
+    set_cell(9, 3, CONDUCTOR)
 
-    matrix.set_cell(10, 2, CONDUCTOR)
-    matrix.set_cell(11, 2, CONDUCTOR)
-    matrix.set_cell(12, 2, CONDUCTOR)
-    matrix.set_cell(13, 2, CONDUCTOR)
+    set_cell(10, 2, CONDUCTOR)
+    set_cell(11, 2, CONDUCTOR)
+    set_cell(12, 2, CONDUCTOR)
+    set_cell(13, 2, CONDUCTOR)
 
-    matrix.run()
+    run()
 
 
 if __name__ == '__main__':
