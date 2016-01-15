@@ -3,6 +3,7 @@
 import time
 import pygame as pg
 import numpy as np
+import weakref
 
 CONDUCTOR = 0
 HEAD = 1
@@ -26,10 +27,13 @@ matrix = []
 for j in range(HEIGHT):
     matrix.append([])
     matrix[j] = [None] * WIDTH
-
 matrix = np.array(matrix)
 
+objs = []
+
+
 def compute(cell):
+    cell = cell()
     if cell is not None:
         color = (0, 0, 0)
         if cell.current == HEAD:
@@ -58,12 +62,20 @@ def compute(cell):
 
 
 def evolve(cell):
+    cell = cell()
     if cell is not None:
         cell.current = cell.next
 
 
-def set_cell(x, y, status):
-    matrix[y, x] = Cell(x, y, status)
+def set_cell(x, y, status=CONDUCTOR):
+    cell = Cell(x, y, status)
+    matrix[y, x] = cell
+    objs.append(weakref.ref(cell))
+
+
+def remove_cell(x, y):
+    objs.remove(weakref.ref(matrix[y, x]))
+    matrix[y, x] = None
 
 
 def show_console(m):
@@ -89,10 +101,10 @@ def run():
         # show_console(matrix)
 
         t0 = time.time()
-        compute(matrix)
-        evolve(matrix)
-        # map(compute, np.nditer(matrix, op_flags=['readwrite']))
-        # map(evolve, np.nditer(matrix, op_flags=['readwrite']))
+        compute(objs)
+        evolve(objs)
+        # map(compute, objs)
+        # map(evolve, objs)
         t1 = time.time()
         pg.display.update()
         print(t1 - t0)
